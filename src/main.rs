@@ -1,10 +1,11 @@
-#[macro_use]
-extern crate dotenv_codegen;
-
+pub mod api;
 pub mod fiat;
 pub mod shared;
-pub mod api;
 
+use crate::{
+    api::yadio::{get_yadio_prices, Prices},
+    shared::get_config,
+};
 use bip39::Mnemonic;
 use cosmrs::{
     bip32,
@@ -13,24 +14,19 @@ use cosmrs::{
     rpc::HttpClient,
     tendermint::chain::Id,
     tx::{self, Fee, Msg, SignDoc, SignerInfo},
-    AccountId, Coin,
+    AccountId, Coin, Denom,
 };
 use cosmwasm_std::Uint128;
-use dotenv::dotenv;
-use localterra_protocol::{
-    currencies::FiatCurrency,
-    offer::{CurrencyPrice, ExecuteMsg::UpdatePrices},
-};
+use localmoney_protocol::price::ExecuteMsg as PriceExecuteMsg;
+use localmoney_protocol::{currencies::FiatCurrency, price::CurrencyPrice};
 use shared::AccountResponse;
-use crate::api::yadio::{get_yadio_prices, Prices};
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
     let yadio_request = get_yadio_prices().await;
     let price = match yadio_request {
         Ok(prices) => prices,
-        Err(_) => Prices::default()
+        Err(_) => Prices::default(),
     };
 
     let prices = vec![
@@ -49,30 +45,39 @@ async fn main() {
     let prices_json = serde_json::to_string(&prices).unwrap();
     println!("prices: {}", prices_json);
     // Derivate Wallet from Seed
-    let path = "m/44'/118'/0'/0/0"
+    let path = "m/44'/330'/0'/0/0"
         .parse::<bip32::DerivationPath>()
         .unwrap();
-    let seed_words = dotenv!("ADMIN_SEED");
+    let cfg = get_config();
+    let seed_words = cfg.get_string("admin_seed").unwrap();
     let mnemonic = Mnemonic::parse_normalized(&seed_words).unwrap();
     let seed = mnemonic.to_seed("");
     let sender_priv_key = secp256k1::SigningKey::derive_from_path(seed, &path).unwrap();
     let sender_pub_key = sender_priv_key.public_key();
-    let sender_addr = sender_pub_key.account_id(dotenv!("ADDR_PREFIX")).unwrap();
+    let addr_prefix = cfg.get_string("addr_prefix").unwrap();
+    let sender_addr = sender_pub_key.account_id(&addr_prefix).unwrap();
 
     // Fetch Account details, we need the account sequence number
+    let lcd_url = cfg.get_string("lcd").unwrap();
     let account_url = format!(
         "{}cosmos/auth/v1beta1/accounts/{}",
-        dotenv!("LCD"),
+        lcd_url,
         sender_addr.to_string()
     );
+    // print account_url
+    println!("account_url: {}", account_url);
     let account_res = reqwest::get(account_url).await.unwrap();
     let account_data = account_res.json::<AccountResponse>().await;
+    match &account_data {
+        Ok(account_data) => println!("account_data: {:#?}", account_data),
+        Err(e) => println!("account_data error: {}", e),
+    }
     println!("account_data ok: {}", account_data.is_ok());
     let account_data = account_data.unwrap();
     println!("Account sequence is {}", account_data.account.sequence);
 
     // Send Tx to Contract
-    let contract_addr = dotenv!("PRICE_ADDR").parse::<AccountId>().unwrap();
+    let contract_addr = cfg.get_string("price_addr").unwrap();
     let mut tx_body_builder = tx::BodyBuilder::new();
     let mut currency_prices: Vec<CurrencyPrice> = vec![];
     prices.iter().for_each(|price_fiat| {
@@ -86,13 +91,12 @@ async fn main() {
             updated_at: 0,
         });
     });
-    // let update_price_msg = UpdatePrices()
-    let update_prices_msg = UpdatePrices(currency_prices);
+    let update_prices_msg = PriceExecuteMsg::UpdatePrices(currency_prices);
     let json_msg = serde_json::to_string(&update_prices_msg).unwrap();
     println!("update_msg: {}", json_msg);
     let execute_msg = MsgExecuteContract {
         sender: sender_addr.clone(),
-        contract: contract_addr.clone(),
+        contract: contract_addr.clone().parse::<AccountId>().unwrap(),
         msg: json_msg.into_bytes(),
         funds: vec![],
     };
@@ -107,9 +111,10 @@ async fn main() {
             .parse::<i64>()
             .unwrap() as u64,
     );
+    let denom = cfg.get_string("denom").unwrap().parse::<Denom>().unwrap();
     let gas_amount = Coin {
-        amount: 358u128,
-        denom: "ukuji".parse().unwrap(),
+        amount: 4500u128,
+        denom,
     };
     let auth_info = signer_info.auth_info(Fee::from_amount_and_gas(gas_amount, 300_000u64));
     let tx_body = tx_body_builder.finish();
@@ -119,11 +124,11 @@ async fn main() {
         .clone()
         .parse::<i64>()
         .unwrap() as u64;
-    let chain_id = dotenv!("CHAIN_ID").parse::<Id>().unwrap();
+    let chain_id = cfg.get_string("chain_id").unwrap().parse::<Id>().unwrap();
     let sign_doc = SignDoc::new(&tx_body, &auth_info, &chain_id, account_number).unwrap();
     let tx_signed = sign_doc.sign(&sender_priv_key).unwrap();
-    let rpc_url = dotenv!("RPC");
-    let client = HttpClient::new(rpc_url).unwrap();
+    let rpc_url = cfg.get_string("rpc").unwrap();
+    let client = HttpClient::new(rpc_url.as_str()).unwrap();
     let res = tx_signed.broadcast_commit(&client).await.unwrap();
     println!("{}", res.deliver_tx.info.to_string());
     println!("res: {:#?}", res);

@@ -11,3 +11,5 @@ Cargo.lock
 
 # Custom
 .env
+config.toml
+config.toml.*

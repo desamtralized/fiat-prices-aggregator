@@ -1,0 +1,8 @@
+name = ""
+chain_id = ""
+lcd = ""
+rpc = ""
+gas_price = ""
+addr_prefix = ""
+admin_seed = ""
+price_addr = ""

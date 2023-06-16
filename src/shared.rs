@@ -1,4 +1,5 @@
 use average::WeightedMean;
+use config::Config;
 use rust_decimal::prelude::Zero;
 use serde::{Deserialize, Serialize};
 
@@ -52,4 +53,11 @@ pub fn get_avg_from_sources(price_source_a: PriceSource, price_source_b: PriceSo
         }
         return *price;
     }
+}
+
+pub fn get_config() -> Config {
+    Config::builder()
+        .add_source(config::File::with_name("config"))
+        .build()
+        .unwrap()
 }
