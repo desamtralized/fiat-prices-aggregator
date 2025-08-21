@@ -6,17 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-average = "0.13.1"
-anyhow = "1.0.65"
-base64 = "0.13.1"
-bip39 = "1.0.1"
-cosmrs = { version = "0.9.0", features = ["cosmwasm", "rpc"] }
-cosmwasm-std = "1.0.0"
+average = "0.15.1"
+anyhow = "1.0.96"
+base64 = "0.22.1"
+bip39 = "2.1.0"
+cosmrs = { version = "0.16.0", features = ["cosmwasm", "rpc"] }
+cosmwasm-std = { version = "2.2.0", features = [] }
+ed25519-zebra = { version = "4", features = ["alloc"] }
 dotenv = "0.15.0"
-reqwest = { version = "0.11.12", features = ["json"] }
-rust_decimal = "1.26.1"
-serde = { version = "1.0.145", default-features = false, features = ["derive"] }
-serde_json = "1.0.86"
-tokio = { version = "1.21.2", features = ["full"] }
-localterra-protocol = { git = "https://github.com/Local-Money/localmoney", rev = "19871c4547fcc8ff590975ebf4c6352905e7d7b1" }
+reqwest = { version = "0.12.15", features = ["json"] }
+rust_decimal = "1.36.0"
+serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+serde_json = "1.0.136"
+tokio = { version = "1.43.0", features = ["full"] }
+localmoney-protocol = { path = "../local-money/contracts/cosmwasm/packages/protocol" }
 dotenv_codegen = "0.15.0"

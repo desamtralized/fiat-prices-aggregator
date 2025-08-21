@@ -17,9 +17,9 @@ use cosmrs::{
 };
 use cosmwasm_std::Uint128;
 use dotenv::dotenv;
-use localterra_protocol::{
+use localmoney_protocol::{
     currencies::FiatCurrency,
-    offer::{CurrencyPrice, ExecuteMsg::UpdatePrices},
+    price::{CurrencyPrice, ExecuteMsg::UpdatePrices},
 };
 use shared::AccountResponse;
 use crate::api::yadio::{get_yadio_prices, Prices};
@@ -108,10 +108,10 @@ async fn main() {
             .unwrap() as u64,
     );
     let gas_amount = Coin {
-        amount: 358u128,
-        denom: "ukuji".parse().unwrap(),
+        amount: 15000u128,
+        denom: "uom".parse().unwrap(),
     };
-    let auth_info = signer_info.auth_info(Fee::from_amount_and_gas(gas_amount, 300_000u64));
+    let auth_info = signer_info.auth_info(Fee::from_amount_and_gas(gas_amount, 500_000u64));
     let tx_body = tx_body_builder.finish();
     let account_number = account_data
         .account
@@ -125,6 +125,6 @@ async fn main() {
     let rpc_url = dotenv!("RPC");
     let client = HttpClient::new(rpc_url).unwrap();
     let res = tx_signed.broadcast_commit(&client).await.unwrap();
-    println!("{}", res.deliver_tx.info.to_string());
+    println!("{}", res.tx_result.log.to_string());
     println!("res: {:#?}", res);
 }
