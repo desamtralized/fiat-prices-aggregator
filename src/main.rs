@@ -1,10 +1,11 @@
 #[macro_use]
 extern crate dotenv_codegen;
 
+pub mod api;
 pub mod fiat;
 pub mod shared;
-pub mod api;
 
+use crate::api::yadio::{get_yadio_prices, Prices};
 use bip39::Mnemonic;
 use cosmrs::{
     bip32,
@@ -22,7 +23,6 @@ use localmoney_protocol::{
     price::{CurrencyPrice, ExecuteMsg::UpdatePrices},
 };
 use shared::AccountResponse;
-use crate::api::yadio::{get_yadio_prices, Prices};
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +30,7 @@ async fn main() {
     let yadio_request = get_yadio_prices().await;
     let price = match yadio_request {
         Ok(prices) => prices,
-        Err(_) => Prices::default()
+        Err(_) => Prices::default(),
     };
 
     let prices = vec![
@@ -109,7 +109,7 @@ async fn main() {
     );
     let gas_amount = Coin {
         amount: 15000u128,
-        denom: "uom".parse().unwrap(),
+        denom: "uatom".parse().unwrap(),
     };
     let auth_info = signer_info.auth_info(Fee::from_amount_and_gas(gas_amount, 500_000u64));
     let tx_body = tx_body_builder.finish();

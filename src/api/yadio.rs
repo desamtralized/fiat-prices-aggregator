@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::api::shared::Error;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[allow(non_snake_case)]
@@ -47,12 +47,11 @@ pub async fn get_yadio_prices() -> Result<Prices, Error> {
     match res {
         Ok(res) => match res.json::<Currency>().await {
             Ok(currency) => Ok(currency.USD),
-            Err(e) => Err(Error::from(&e))
+            Err(e) => Err(Error::from(&e)),
         },
         Err(e) => Err(Error::from(&e)),
     }
 }
-
 
 #[tokio::test]
 async fn test_yadio_prices() {

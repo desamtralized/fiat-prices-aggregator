@@ -1,7 +1,7 @@
-use rust_decimal::Decimal;
-use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
 use crate::api::shared::Error;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +22,7 @@ pub async fn get_crypto_ya_price(market: &str, asset: &str, fiat: &str) -> Resul
             },
             Err(e) => return Err(Error::from(&e)),
         },
-        Err(e) => Err(Error::from(&e))
+        Err(e) => Err(Error::from(&e)),
     }
 }
 

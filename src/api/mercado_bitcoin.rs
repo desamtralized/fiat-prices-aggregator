@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::api::shared::Error;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 struct MercadoBitcoinResponse {
@@ -30,6 +30,6 @@ pub async fn get_price_from_mercado_bitcoin(asset: &str) -> Result<f64, Error> {
             Ok(mercado_bitcoin_response) => Ok(mercado_bitcoin_response.ticker.get_price()),
             Err(e) => Err(Error::from(&e)),
         },
-        Err(e) => Err(Error::from(&e))
+        Err(e) => Err(Error::from(&e)),
     }
 }

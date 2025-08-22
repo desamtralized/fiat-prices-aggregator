@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::api::shared::Error;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 struct BudaResponse {
@@ -25,7 +25,7 @@ impl BudaTicker {
 
 /***
 
- */
+*/
 pub async fn get_buda_price(asset: &str, fiat: &str) -> Result<f64, Error> {
     let url = format!(
         "https://www.buda.com/api/v2/markets/{}-{}/ticker.json",
@@ -34,7 +34,7 @@ pub async fn get_buda_price(asset: &str, fiat: &str) -> Result<f64, Error> {
     match reqwest::get(url).await {
         Ok(res) => match res.json::<BudaResponse>().await {
             Ok(buda_response) => Ok(buda_response.ticker.get_last_price()),
-            Err(e) => Err(Error::from(&e))
+            Err(e) => Err(Error::from(&e)),
         },
         Err(e) => Err(Error::from(&e)),
     }

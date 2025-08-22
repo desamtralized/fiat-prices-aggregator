@@ -1,10 +1,7 @@
-use average::WeightedMean;
-use rust_decimal::{
-    prelude::ToPrimitive,
-    Decimal,
-};
-use serde::{Deserialize, Serialize};
 use crate::api::shared::Error;
+use average::WeightedMean;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]

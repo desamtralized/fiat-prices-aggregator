@@ -42,12 +42,11 @@ pub trait PriceValue {
 }
 
 impl PriceValue for Result<f64, Error> {
-
     fn value_or_log(self, error: &str) -> f64 {
         match self {
             Ok(price) => price,
             Err(e) => {
-                println!("[ERROR] {}: {}",error, e);
+                println!("[ERROR] {}: {}", error, e);
                 0f64
             }
         }
