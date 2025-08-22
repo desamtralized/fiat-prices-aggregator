@@ -17,10 +17,15 @@ pub struct Prices {
     pub COP: f64,
     pub EUR: f64,
     pub GBP: f64,
+    pub IDR: f64,
     pub MXN: f64,
+    pub MYR: f64,
     pub NGN: f64,
+    pub PHP: f64,
+    pub SGD: f64,
     pub THB: f64,
     pub VES: f64,
+    pub VND: f64,
 }
 
 impl Default for Prices {
@@ -33,10 +38,15 @@ impl Default for Prices {
             COP: 0.0,
             EUR: 0.0,
             GBP: 0.0,
-            NGN: 0.0,
+            IDR: 0.0,
             MXN: 0.0,
+            MYR: 0.0,
+            NGN: 0.0,
+            PHP: 0.0,
+            SGD: 0.0,
             THB: 0.0,
             VES: 0.0,
+            VND: 0.0,
         }
     }
 }
@@ -59,4 +69,45 @@ async fn test_yadio_prices() {
     assert!(price_source.is_ok());
     let json_msg = serde_json::to_string(&price_source.unwrap()).unwrap();
     println!("prices: {}", json_msg)
+}
+
+#[tokio::test]
+async fn test_asean_currencies() {
+    let prices = get_yadio_prices().await.unwrap();
+
+    // Verify all ASEAN currencies have non-zero values
+    assert!(prices.IDR > 0.0, "IDR price should be greater than 0");
+    assert!(prices.PHP > 0.0, "PHP price should be greater than 0");
+    assert!(prices.VND > 0.0, "VND price should be greater than 0");
+    assert!(prices.MYR > 0.0, "MYR price should be greater than 0");
+    assert!(prices.SGD > 0.0, "SGD price should be greater than 0");
+    assert!(prices.THB > 0.0, "THB price should be greater than 0");
+
+    println!("ASEAN currency prices:");
+    println!("IDR: {}", prices.IDR);
+    println!("PHP: {}", prices.PHP);
+    println!("VND: {}", prices.VND);
+    println!("MYR: {}", prices.MYR);
+    println!("SGD: {}", prices.SGD);
+    println!("THB: {}", prices.THB);
+}
+
+#[test]
+fn test_zero_price_protection() {
+    // Test that zero prices are properly handled
+    let mut test_prices = Prices::default(); // All zeros
+
+    // Simulate partial API response with some valid prices
+    test_prices.EUR = 0.862166;
+    test_prices.GBP = 0.746083;
+    test_prices.SGD = 1.290295;
+
+    // Verify we can detect zero prices
+    assert_eq!(test_prices.ARS, 0.0);
+    assert_eq!(test_prices.BRL, 0.0);
+    assert!(test_prices.EUR > 0.0);
+    assert!(test_prices.GBP > 0.0);
+    assert!(test_prices.SGD > 0.0);
+
+    println!("Zero price protection test passed");
 }

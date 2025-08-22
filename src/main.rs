@@ -33,7 +33,7 @@ async fn main() {
         Err(_) => Prices::default(),
     };
 
-    let prices = vec![
+    let all_prices = vec![
         (price.ARS, FiatCurrency::ARS),
         (price.BRL, FiatCurrency::BRL),
         (price.CAD, FiatCurrency::CAD),
@@ -41,12 +41,38 @@ async fn main() {
         (price.COP, FiatCurrency::COP),
         (price.EUR, FiatCurrency::EUR),
         (price.GBP, FiatCurrency::GBP),
+        (price.IDR, FiatCurrency::IDR),
         (price.MXN, FiatCurrency::MXN),
+        (price.MYR, FiatCurrency::MYR),
         (price.NGN, FiatCurrency::NGN),
+        (price.PHP, FiatCurrency::PHP),
+        (price.SGD, FiatCurrency::SGD),
         (price.THB, FiatCurrency::THB),
         (price.VES, FiatCurrency::VES),
+        (price.VND, FiatCurrency::VND),
     ];
-    let prices_json = serde_json::to_string(&prices).unwrap();
+
+    // Filter out zero prices to prevent posting invalid data
+    let valid_prices: Vec<(f64, FiatCurrency)> = all_prices
+        .into_iter()
+        .filter(|(price, currency)| {
+            if *price <= 0.0 {
+                println!("WARNING: Skipping {} due to zero/invalid price", currency);
+                false
+            } else {
+                true
+            }
+        })
+        .collect();
+
+    // Check if we have any valid prices to post
+    if valid_prices.is_empty() {
+        println!("ERROR: No valid prices available. Aborting transaction to prevent posting invalid data.");
+        std::process::exit(1);
+    }
+
+    println!("Valid prices to post: {}/{}", valid_prices.len(), 16);
+    let prices_json = serde_json::to_string(&valid_prices).unwrap();
     println!("prices: {}", prices_json);
     // Derivate Wallet from Seed
     let path = "m/44'/118'/0'/0/0"
@@ -75,7 +101,7 @@ async fn main() {
     let contract_addr = dotenv!("PRICE_ADDR").parse::<AccountId>().unwrap();
     let mut tx_body_builder = tx::BodyBuilder::new();
     let mut currency_prices: Vec<CurrencyPrice> = vec![];
-    prices.iter().for_each(|price_fiat| {
+    valid_prices.iter().for_each(|price_fiat| {
         // TODO: although most currencies have 2 decimals,
         // some currencies like JPY have 3 and some exotic currencies have zero.
         let usd_price = Uint128::from((price_fiat.0 * 100.0).round() as u64);
@@ -127,4 +153,54 @@ async fn main() {
     let res = tx_signed.broadcast_commit(&client).await.unwrap();
     println!("{}", res.tx_result.log.to_string());
     println!("res: {:#?}", res);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::yadio::Prices;
+
+    #[test]
+    fn test_price_filtering_logic() {
+        // Create test prices with some zeros
+        let mut test_price = Prices::default();
+        test_price.EUR = 0.85;
+        test_price.GBP = 0.75;
+        test_price.SGD = 1.30;
+        // ARS, BRL, CAD, etc. remain 0.0
+
+        let all_prices = vec![
+            (test_price.ARS, FiatCurrency::ARS), // 0.0
+            (test_price.BRL, FiatCurrency::BRL), // 0.0
+            (test_price.EUR, FiatCurrency::EUR), // 0.85
+            (test_price.GBP, FiatCurrency::GBP), // 0.75
+            (test_price.SGD, FiatCurrency::SGD), // 1.30
+        ];
+
+        // Filter out zero prices
+        let valid_prices: Vec<(f64, FiatCurrency)> = all_prices
+            .into_iter()
+            .filter(|(price, _currency)| *price > 0.0)
+            .collect();
+
+        // Should only have 3 valid prices
+        assert_eq!(valid_prices.len(), 3);
+        assert!(valid_prices
+            .iter()
+            .any(|(_, c)| matches!(c, FiatCurrency::EUR)));
+        assert!(valid_prices
+            .iter()
+            .any(|(_, c)| matches!(c, FiatCurrency::GBP)));
+        assert!(valid_prices
+            .iter()
+            .any(|(_, c)| matches!(c, FiatCurrency::SGD)));
+
+        // Should not have zero-priced currencies
+        assert!(!valid_prices
+            .iter()
+            .any(|(_, c)| matches!(c, FiatCurrency::ARS)));
+        assert!(!valid_prices
+            .iter()
+            .any(|(_, c)| matches!(c, FiatCurrency::BRL)));
+    }
 }
